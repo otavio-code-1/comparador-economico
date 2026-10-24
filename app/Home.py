@@ -266,7 +266,7 @@ indicadores = {
         "agregacao": "mean",
     },
         "Participação total dos serviços": {
-        "coluna": "participacao_servicos_total_pct",
+        "coluna": "vab_servicos_mil_reais",
         "unidade": "%",
         "tipo": "percentual",
         "agregacao": "mean",
