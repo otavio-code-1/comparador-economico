@@ -84,10 +84,25 @@ def carregar_base(caminho, ultima_modificacao):
         "cambio_medio_brl_por_usd",
     ].iloc[0]
 
+    
     dados["pib_real_usd_2023_milhoes"] = (
         dados["pib_real_2023"]
         / cambio_2023
         / 1_000_000
+    )
+
+    # PIB per capita nominal em dólares correntes
+    dados["pib_per_capita_nominal_usd"] = (
+        dados["pib_nominal_reais"]
+        / dados["populacao"]
+        / dados["cambio_medio_brl_por_usd"]
+    )
+
+    # PIB per capita real em dólares de 2023
+    dados["pib_per_capita_real_usd_2023"] = (
+        dados["pib_real_2023"]
+        / dados["populacao"]
+        / cambio_2023
     )
 
     return dados
@@ -146,35 +161,29 @@ st.divider()
 # --------------------------------------------------
 
 indicadores = {
-    "PIB real": {
-        "coluna": "pib_real_2023",
-        "unidade": "R$ milhões",
-        "tipo": "pib_total",
-        "agregacao": "sum",
-    },
     "PIB nominal": {
         "coluna": "pib_nominal_reais",
         "unidade": "R$ milhões",
         "tipo": "pib_total",
         "agregacao": "sum",
     },
+    "PIB real": {
+        "coluna": "pib_real_2023",
+        "unidade": "R$ milhões",
+        "tipo": "pib_total",
+        "agregacao": "sum",
+    },
     "PIB nominal (US$ milhões)": {
-    "coluna": "pib_nominal_usd_milhoes",
-    "unidade": "US$ milhões",
-    "tipo": "pib_total",
-    "agregacao": "sum",
-},
-"PIB real (US$ milhões de 2023)": {
-    "coluna": "pib_real_usd_2023_milhoes",
-    "unidade": "US$ milhões de 2023",
-    "tipo": "pib_total",
-    "agregacao": "sum",
-},
-    "PIB per capita real": {
-        "coluna": "pib_per_capita_real_2023",
-        "unidade": "R$ por habitante",
-        "tipo": "per_capita",
-        "agregacao": "mean",
+        "coluna": "pib_nominal_usd_milhoes",
+        "unidade": "US$ milhões",
+        "tipo": "pib_total",
+        "agregacao": "sum",
+    },
+    "PIB real (US$ milhões de 2023)": {
+        "coluna": "pib_real_usd_2023_milhoes",
+        "unidade": "US$ milhões de 2023",
+        "tipo": "pib_total",
+        "agregacao": "sum",
     },
     "PIB per capita nominal": {
         "coluna": "pib_per_capita_nominal",
@@ -182,17 +191,85 @@ indicadores = {
         "tipo": "per_capita",
         "agregacao": "mean",
     },
-    "População": {
-        "coluna": "populacao",
-        "unidade": "habitantes",
-        "tipo": "quantidade",
-        "agregacao": "sum",
+    "PIB per capita real": {
+        "coluna": "pib_per_capita_real_2023",
+        "unidade": "R$ por habitante",
+        "tipo": "per_capita",
+        "agregacao": "mean",
+    },
+    "PIB per capita nominal (US$)": {
+        "coluna": "pib_per_capita_nominal_usd",
+        "unidade": "US$ por habitante",
+        "tipo": "per_capita",
+        "agregacao": "mean",
+    },
+    "PIB per capita real (US$ de 2023)": {
+        "coluna": "pib_per_capita_real_usd_2023",
+        "unidade": "US$ de 2023 por habitante",
+        "tipo": "per_capita",
+        "agregacao": "mean",
     },
     "Emprego formal": {
         "coluna": "vinculos_ativos_31_12",
         "unidade": "vínculos ativos",
         "tipo": "quantidade",
         "agregacao": "sum",
+    },
+    
+    "VAB total": {
+        "coluna": "vab_total_mil_reais",
+        "unidade": "R$ milhões",
+        "tipo": "vab_total",
+        "agregacao": "sum",
+    },
+    "VAB da agropecuária": {
+        "coluna": "vab_agropecuaria_mil_reais",
+        "unidade": "R$ milhões",
+        "tipo": "vab_total",
+        "agregacao": "sum",
+    },
+    "VAB da indústria": {
+        "coluna": "vab_industria_mil_reais",
+        "unidade": "R$ milhões",
+        "tipo": "vab_total",
+        "agregacao": "sum",
+    },
+    "VAB dos serviços": {
+        "coluna": "vab_servicos_mil_reais",
+        "unidade": "R$ milhões",
+        "tipo": "vab_total",
+        "agregacao": "sum",
+    },
+    "VAB da administração pública": {
+        "coluna": "vab_administracao_publica_mil_reais",
+        "unidade": "R$ milhões",
+        "tipo": "vab_total",
+        "agregacao": "sum",
+    },
+    
+    "Participação da agropecuária": {
+        "coluna": "participacao_agropecuaria_pct",
+        "unidade": "%",
+        "tipo": "percentual",
+        "agregacao": "mean",
+    },
+    "Participação da indústria": {
+        "coluna": "participacao_industria_pct",
+        "unidade": "%",
+        "tipo": "percentual",
+        "agregacao": "mean",
+    },
+    "Participação dos serviços": {
+        "coluna": "participacao_servicos_pct",
+        "unidade": "%",
+        "tipo": "percentual",
+        "agregacao": "mean",
+    },
+        "Participação total dos serviços": {
+        "coluna": "participacao_servicos_total_pct",
+        "unidade": "%",
+        "tipo": "percentual",
+        "agregacao": "mean",
     },
 }
 
@@ -337,18 +414,19 @@ if consulta.empty:
 
 if info_indicador["tipo"] == "per_capita":
 
-    if indicador_nome == "PIB per capita real":
+    # Identifica qual PIB usar no cálculo agregado
+    if indicador_nome in (
+        "PIB per capita real",
+        "PIB per capita real (US$ de 2023)",
+    ):
         coluna_pib = "pib_real_2023"
     else:
         coluna_pib = "pib_nominal_reais"
 
-    # Usa apenas registros com PIB e população disponíveis.
     dados_validos = consulta.dropna(
         subset=[coluna_pib, "populacao"]
     ).copy()
 
-    # Calcula o PIB per capita agregado por ano:
-    # PIB total dividido pela população total.
     dados_grafico = (
         dados_validos.groupby("ano")
         .agg(
@@ -363,24 +441,122 @@ if info_indicador["tipo"] == "per_capita":
         / dados_grafico["populacao_total"]
     )
 
+    # Converte o PIB per capita para dólares
+    if indicador_nome == "PIB per capita nominal (US$)":
+
+        cambio_por_ano = (
+            dados_validos.groupby("ano")[
+                "cambio_medio_brl_por_usd"
+            ]
+            .first()
+            .rename("cambio")
+            .reset_index()
+        )
+
+        dados_grafico = dados_grafico.merge(
+            cambio_por_ano,
+            on="ano",
+            how="left",
+        )
+
+        dados_grafico["valor"] = (
+            dados_grafico["valor"] / dados_grafico["cambio"]
+        )
+
+    elif indicador_nome == "PIB per capita real (US$ de 2023)":
+
+        cambio_2023 = base.loc[
+            base["ano"] == 2023,
+            "cambio_medio_brl_por_usd",
+        ].dropna().iloc[0]
+
+        dados_grafico["valor"] = (
+            dados_grafico["valor"] / cambio_2023
+        )
+
     dados_grafico = dados_grafico[["ano", "valor"]]
 
 else:
 
-    dados_grafico = (
-        consulta.groupby("ano")[coluna_indicador]
-        .agg(info_indicador["agregacao"])
-        .reset_index()
-        .rename(columns={coluna_indicador: "valor"})
-    )
+    # Calcula as participações setoriais usando os valores agregados
+    if info_indicador["tipo"] == "percentual":
 
-    # Converte PIB total para milhões apenas na exibição.
-    if info_indicador["tipo"] == "pib_total":
-        dados_grafico["valor"] = (
-            dados_grafico["valor"] / 1_000_000
+        componentes = {
+            "Participação da agropecuária": [
+                "vab_agropecuaria_mil_reais",
+            ],
+            "Participação da indústria": [
+                "vab_industria_mil_reais",
+            ],
+            "Participação dos serviços": [
+                "vab_servicos_mil_reais",
+            ],
+            "Participação total dos serviços": [
+                "vab_servicos_mil_reais",
+                "vab_administracao_publica_mil_reais",
+            ],
+        }
+
+        colunas_setoriais = componentes[indicador_nome]
+
+        colunas_necessarias = [
+            "vab_total_mil_reais",
+            *colunas_setoriais,
+        ]
+
+        dados_validos = consulta.dropna(
+            subset=colunas_necessarias
+        ).copy()
+
+        dados_grafico = (
+            dados_validos.groupby("ano")[colunas_necessarias]
+            .sum()
+            .reset_index()
         )
 
+        # Participação = VAB do setor / VAB total × 100
+        dados_grafico["valor"] = (
+            dados_grafico[colunas_setoriais].sum(axis=1)
+            / dados_grafico["vab_total_mil_reais"]
+            * 100
+        )
+
+        dados_grafico = dados_grafico[["ano", "valor"]]
+
+    else:
+
+        # Agrega os demais indicadores por ano
+        dados_grafico = (
+            consulta.groupby("ano")[coluna_indicador]
+            .agg(info_indicador["agregacao"])
+            .reset_index()
+            .rename(columns={coluna_indicador: "valor"})
+        )
+
+        # Converte PIB total em reais para milhões de reais.
+        # Os indicadores em dólares já estão em milhões de dólares.
+        if (
+            info_indicador["tipo"] == "pib_total"
+            and coluna_indicador not in (
+                "pib_nominal_usd_milhoes",
+                "pib_real_usd_2023_milhoes",
+            )
+        ):
+            dados_grafico["valor"] = (
+                dados_grafico["valor"] / 1_000_000
+            )
+
+        # O VAB setorial está originalmente em mil reais.
+        # Para exibir em milhões de reais, divide-se por mil.
+        elif info_indicador["tipo"] == "vab_total":
+            dados_grafico["valor"] = (
+                dados_grafico["valor"] / 1_000
+            )
+
+# Remove observações sem valor
 dados_grafico = dados_grafico.dropna(subset=["valor"])
+
+# Prepara o ano para exibição
 dados_grafico["ano"] = (
     dados_grafico["ano"].astype(int).astype(str)
 )
