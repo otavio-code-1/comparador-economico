@@ -67,6 +67,7 @@ comparador-economico/
 
 Otávio Campelo de Oliveira
 📧 otavioc2009@gmail.com
+
 💼 www.linkedin.com/in/ot%C3%A1vio-oliveira-682846otv
 
 ## Licença
